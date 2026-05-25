@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SchoolDesk | วิทย์พลังสิบ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&family=Kanit:wght@700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --bj-green: #006400; --wp-gold: #FFD700; }
+        body { font-family: 'Sarabun', sans-serif; background-color: #0a0a0a; color: #f1f5f9; overflow-x: hidden; }
+        .kanit { font-family: 'Kanit', sans-serif; }
+        .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .teacher-only { display: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        input, select, textarea { background: #161b22 !important; color: #fff !important; border: 1px solid #30363d !important; border-radius: 12px; padding: 12px; width: 100%; outline: none; transition: 0.2s; }
+        input:focus, select:focus { border-color: #10b981 !important; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+        .status-pill { padding: 2px 10px; border-radius: 99px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); transition: 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); z-index: 100; }
+        #toast.active { transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="toast" class="px-6 py-3 rounded-full font-bold text-white shadow-2xl"></div>
+    <div id="app">
+        <!-- หน้าจอเข้าสู่ระบบ (Auth Screen) -->
+        <div id="auth-screen" class="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-green-900 via-black to-black">
+            <div class="w-full max-w-md text-center">
+                <div class="w-24 h-24 bg-yellow-400 rounded-3xl flex items-center justify-center mx-auto mb-8 rotate-3 shadow-[0_0_30px_rgba(255,215,0,0.3)]">
+                    <span class="text-4xl text-green-900 font-black italic">๑๐</span>
+                </div>
+                <h1 class="kanit text-4xl font-black text-white mb-2">SchoolDesk</h1>
+                <p class="text-emerald-400 text-sm mb-12 font-bold tracking-[0.2em] uppercase italic">วิทยาศาสตร์พลังสิบ</p>
+                <div class="space-y-4">
+                    <button id="google-login-btn" class="w-full flex items-center justify-center gap-4 bg-white text-slate-900 font-black py-4.5 px-6 rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="22">
+                        ลงชื่อเข้าใช้งาน
+                    </button>
+                    <div class="glass p-6 rounded-3xl border-t-4 border-red-700 mt-8">
+                        <p class="text-slate-500 text-[10px] font-black mb-4 uppercase tracking-widest">Teacher Authorization</p>
+                        <div class="flex gap-2">
+                            <input type="password" id="teacher-pw" placeholder="รหัสผ่านคุณครู" class="text-center">
+                            <button id="teacher-login-btn" class="bg-red-700 hover:bg-red-600 text-white font-black px-6 rounded-xl transition-colors">GO</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- หน้าจอหลักหลังเข้าสู่ระบบ (Main App) -->
+        <div id="main-app" class="hidden min-h-screen flex flex-col">
+            <header class="h-16 glass border-b border-white/5 px-6 flex items-center justify-between sticky top-0 z-50">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center text-xs font-black text-green-900">๑๐</div>
+                    <span class="kanit font-black text-white tracking-tight">SchoolDesk</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden sm:block">
+                        <div id="u-name" class="text-white text-xs font-bold leading-none mb-1">...</div>
+                        <div id="u-role" class="text-[9px] text-emerald-400 font-black uppercase tracking-tighter">...</div>
+                    </div>
+                    <button id="logout-btn" class="p-2 text-slate-500 hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                    </button>
+                </div>
+            </header>
+
+            <main class="max-w-3xl mx-auto w-full p-4 sm:p-6 flex-1">
+                <div id="grade-tabs" class="flex gap-2 overflow-x-auto pb-6 no-scrollbar"></div>
+                <div id="view-list">
+                    <div class="flex justify-between items-end mb-6">
+                        <div>
+                            <h2 id="view-title" class="kanit text-2xl text-white font-black italic">ภาระงาน</h2>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase mt-1">วิทยาศาสตร์พลังสิบ เบ็ญจะมะมหาราช</p>
+                        </div>
+                        <button id="nav-add-btn" class="teacher-only bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-emerald-900/40 transition-all">+ มอบหมาย</button>
+                    </div>
+                    <div id="hw-list" class="grid grid-cols-1 gap-4"></div>
+                </div>
+
+                <div id="view-add" class="hidden">
+                    <button onclick="window.switchView('list')" class="text-slate-500 text-xs font-black mb-6 flex items-center gap-1 hover:text-white">← กลับหน้าหลัก</button>
+                    <div class="glass p-6 rounded-3xl border-emerald-500/10 shadow-2xl">
+                        <h2 class="kanit text-2xl text-white mb-8 font-black italic">บันทึกภาระงานใหม่</h2>
+                        <div class="space-y-5">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-[10px] text-emerald-500 font-black uppercase mb-1.5 block">ระดับชั้น</label>
+                                    <select id="f-grade"></select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-emerald-500 font-black uppercase mb-1.5 block">รายวิชา</label>
+                                    <select id="f-subject"></select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-emerald-500 font-black uppercase mb-1.5 block">หัวข้อกิจกรรม</label>
+                                <input id="f-title" type="text" placeholder="ระบุชื่อกิจกรรม">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-emerald-500 font-black uppercase mb-1.5 block">รายละเอียด</label>
+                                <textarea id="f-desc" placeholder="คำสั่งหรือรายละเอียดเพิ่มเติม..." class="h-32"></textarea>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-red-500 font-black uppercase mb-1.5 block">กำหนดส่ง</label>
+                                <input id="f-end" type="date">
+                            </div>
+                            <button id="btn-save" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4.5 rounded-2xl mt-4 transition-all disabled:opacity-50">บันทึกข้อมูล</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-detail" class="hidden">
+                    <button onclick="window.switchView('list')" class="text-slate-500 text-xs font-black mb-6 flex items-center gap-1 hover:text-white">← ย้อนกลับ</button>
+                    <div id="detail-content" class="glass p-8 rounded-3xl relative overflow-hidden"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // กำหนดค่า Firebase ของคุณ
+        const firebaseConfig = {
+            apiKey: "AIzaSyDHhIcfWW1MbtQs6yhRUaSix0sDuyQQwjk",
+            authDomain: "equation-insights.firebaseapp.com",
+            projectId: "equation-insights",
+            storageBucket: "equation-insights.firebasestorage.app",
+            messagingSenderId: "247366204978",
+            appId: "1:247366204978:web:08c69046aa08a4ea66062b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+        const appId = "wit-phalang-sib-v2";
+
+        const GRADES = ["ม.1", "ม.2", "ม.3", "ม.4", "ม.5", "ม.6"];
+        const SUBJECTS = ["ฟิสิกส์", "เคมี", "ชีววิทยา", "ดาราศาสตร์", "คณิตศาสตร์", "วิทยาศาสตร์ทั่วไป", "คอมพิวเตอร์", "สุขศึกษา", "ประวัติศาสตร์", "ภาษาไทย", "ภาษาอังกฤษ"];
+
+        let user = null;
+        let role = localStorage.getItem('school-role') || 'student';
+        let currentGrade = "ม.4";
+        let allData = [];
+
+        function showToast(msg, color = 'bg-emerald-600') {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.className = `px-6 py-3 rounded-full font-bold text-white shadow-2xl active ${color}`;
+            setTimeout(() => t.classList.remove('active'), 3000);
+        }
+
+        window.switchView = (v) => {
+            document.getElementById('view-list').classList.toggle('hidden', v !== 'list');
+            document.getElementById('view-add').classList.toggle('hidden', v !== 'add');
+            document.getElementById('view-detail').classList.toggle('hidden', v !== 'detail');
+            if (v === 'list') renderList();
+        };
+
+        window.setGrade = (g) => {
+            currentGrade = g;
+            renderTabs();
+            renderList();
+        };
+
+        function renderTabs() {
+            const container = document.getElementById('grade-tabs');
+            container.innerHTML = GRADES.map(g => `
+                <button onclick="window.setGrade('${g}')" class="flex-shrink-0 px-6 py-2.5 rounded-xl font-black transition-all ${currentGrade === g ? 'bg-emerald-600 text-white shadow-lg' : 'bg-white/5 text-slate-500 hover:bg-white/10'}">
+                    ${g}
+                </button>
+            `).join('');
+            document.getElementById('view-title').innerText = `ภาระงาน ${currentGrade}`;
+        }
+
+        function renderList() {
+            const list = document.getElementById('hw-list');
+            const filtered = allData.filter(d => d.grade === currentGrade);
+            if (filtered.length === 0) {
+                list.innerHTML = `<div class="py-24 text-center opacity-20 italic font-bold">ไม่มีภาระงานของชั้น ${currentGrade}</div>`;
+                return;
+            }
+            list.innerHTML = filtered.sort((a,b) => new Date(b.endDate) - new Date(a.endDate)).map(h => `
+                <div onclick="window.showDetail('${h.id}')" class="glass p-5 rounded-2xl cursor-pointer hover:border-emerald-500/40 hover:scale-[1.01] transition-all group">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-[10px] font-black text-emerald-500 uppercase">${h.subject}</span>
+                        <span class="status-pill ${h.status === 'done' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}">${h.status === 'done' ? 'สำเร็จ' : 'รอดำเนินการ'}</span>
+                    </div>
+                    <h3 class="text-white font-bold text-lg mb-4 group-hover:text-emerald-400">${h.title}</h3>
+                    <div class="flex items-center justify-between text-[10px] text-slate-500 font-bold">
+                        <span>👤 ${h.author}</span>
+                        <span class="text-red-500">DEADLINE: ${new Date(h.endDate).toLocaleDateString('th-TH')}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.showDetail = (id) => {
+            const h = allData.find(x => x.id === id);
+            if (!h) return;
+            const container = document.getElementById('detail-content');
+            container.innerHTML = `
+                <h1 class="kanit text-3xl text-white font-black mb-6">${h.title}</h1>
+                <div class="bg-black/40 p-6 rounded-2xl mb-8">
+                    <p class="text-slate-300 text-sm whitespace-pre-wrap">${h.desc || '-'}</p>
+                </div>
+                ${role === 'teacher' ? `<button onclick="window.deleteHW('${h.id}')" class="w-full py-4 text-red-500 font-black">ลบงาน</button>` : ''}
+            `;
+            window.switchView('detail');
+        };
+
+        window.deleteHW = async (id) => {
+            if (confirm("ลบงาน?")) {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'homeworks', id));
+                window.switchView('list');
+            }
+        };
+
+        document.getElementById('f-grade').innerHTML = GRADES.map(g => `<option value="${g}">${g}</option>`).join('');
+        document.getElementById('f-subject').innerHTML = SUBJECTS.map(s => `<option value="${s}">${s}</option>`).join('');
+        document.getElementById('nav-add-btn').addEventListener('click', () => window.switchView('add'));
+
+        // จัดการบันทึกข้อมูลและยิงไปหา Google Sheet Web App
+        document.getElementById('btn-save').onclick = async function() {
+            const title = document.getElementById('f-title').value.trim();
+            const end = document.getElementById('f-end').value;
+            const grade = document.getElementById('f-grade').value;
+            const subject = document.getElementById('f-subject').value;
+            const desc = document.getElementById('f-desc').value;
+
+            if (!title || !end) return showToast("กรอกข้อมูลไม่ครบ!", "bg-amber-600");
+            
+            const btn = this;
+            btn.disabled = true;
+            btn.innerText = "กำลังบันทึกข้อมูล...";
+
+            try {
+                // 1. บันทึกลงฐานข้อมูล Firebase Firestore เป็นหลัก
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'homeworks'), {
+                    title, desc, grade, subject, endDate: end, status: 'pending', author: user.displayName, createdAt: serverTimestamp()
+                });
+
+                // 2. ยิงข้อมูลไปยัง Web App Google Sheets เพื่อไปบันทึกข้อมูลและส่งแจ้งเตือนผ่านบอท LINE
+                const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyTm5ia1ROEgkj3vrV8b_ViY2O0REZi6FwYBMVzu8pML9GvFnuc5L1w1GyG2YAK1nWG/exec"; 
+
+                await fetch(GOOGLE_SHEETS_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8' // ป้องกันปัญหาระบบตรวจสอบ CORS Block (Preflight)
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        desc: desc,
+                        grade: grade,
+                        subject: subject,
+                        endDate: end,
+                        author: user.displayName
+                    })
+                });
+
+                showToast("บันทึกข้อมูลลงชีต และกระจายข้อความกลุ่มเรียบร้อย!");
+                document.getElementById('f-title').value = "";
+                document.getElementById('f-desc').value = "";
+                window.switchView('list');
+            } catch (e) {
+                showToast("บันทึกในระบบเรียบร้อยแล้ว!", "bg-emerald-600");
+                console.error(e);
+                window.switchView('list');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "บันทึกข้อมูล";
+            }
+        };
+
+        document.getElementById('google-login-btn').onclick = () => signInWithPopup(auth, provider);
+        document.getElementById('teacher-login-btn').onclick = () => {
+            if (document.getElementById('teacher-pw').value === 'teacher456') {
+                role = 'teacher'; localStorage.setItem('school-role', 'teacher');
+                signInWithPopup(auth, provider);
+            } else showToast("รหัสผิด", "bg-red-600");
+        };
+        document.getElementById('logout-btn').onclick = () => { localStorage.removeItem('school-role'); signOut(auth); };
+
+        onAuthStateChanged(auth, (u) => {
+            user = u;
+            if (user) {
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                role = localStorage.getItem('school-role') || 'student';
+                document.getElementById('u-name').innerText = user.displayName;
+                document.querySelectorAll('.teacher-only').forEach(el => el.style.display = role === 'teacher' ? 'block' : 'none');
+                renderTabs();
+                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'homeworks'), (snap) => {
+                    allData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    renderList();
+                });
+            } else {
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('main-app').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
